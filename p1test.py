@@ -7,10 +7,10 @@ notletter = r'[^A-Za-z0-9]'
 alwayssep = r'[:|;=!?&]'
 word = r'[A-Za-z0-9]+-?[A-Za-z0-9]*'
 
-string_obj = re.compile('^\w+$')
+string_obj = re.compile('^\w+-?\w*$')
 int_obj = re.compile('^-?\d+$')
 double_obj = re.compile('^-?\d+\.\d+$')
-op_obj = re.compile('^[:|;]$')
+op_obj = re.compile('^[:\|;\.=,!\?]$')
 
 def tokenize(line):
 	line = re.sub('(' + alwayssep + ')', r' \g<1> ', line)
@@ -34,14 +34,14 @@ def tokenize(line):
 # double_obj = re.compile('^-?\d+\.\d+$')
 # op_obj = re.compile('^[:|;]$')
 def find_type(w):
-    if string_obj.match(w):
-        return 'STRING'
-    elif int_obj.match(w):
+    if int_obj.match(w):
         return 'INT'
     elif double_obj.match(w):
         return 'DOUBLE'
     elif op_obj.match(w):
         return 'OP'
+    elif string_obj.match(w):
+        return 'STRING'
 
 for line in sys.stdin:
     line = line.strip()
