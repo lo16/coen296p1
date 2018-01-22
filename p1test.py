@@ -7,6 +7,11 @@ notletter = r'[^A-Za-z0-9]'
 alwayssep = r'[:|;=!?&]'
 word = r'[A-Za-z0-9]+-?[A-Za-z0-9]*'
 
+string_obj = re.compile('^\w+$')
+int_obj = re.compile('^-?\d+$')
+double_obj = re.compile('^-?\d+\.\d+$')
+op_obj = re.compile('^[:|;]$')
+
 def tokenize(line):
 	line = re.sub('(' + alwayssep + ')', r' \g<1> ', line)
 
@@ -22,17 +27,28 @@ def tokenize(line):
 	line = re.sub('(' + letternumber + ')\.$', r'\g<1> .', line)
 	line = re.sub('(' + letternumber + ')\. ', r'\g<1> . ', line)
 	words = line.split()
-	print words
+	return words
+
 # string_obj = re.compile('^\w+$')
 # int_obj = re.compile('^-?\d+$')
 # double_obj = re.compile('^-?\d+\.\d+$')
 # op_obj = re.compile('^[:|;]$')
+def find_type(w):
+    if string_obj.match(w):
+        return 'STRING'
+    elif int_obj.match(w):
+        return 'INT'
+    elif double_obj.match(w):
+        return 'DOUBLE'
+    elif op_obj.match(w):
+        return 'OP'
 
 for line in sys.stdin:
     line = line.strip()
     split_line = tokenize(line)
-    if split_line != [] and split_line[0] != '#':
-    	print '{0} {1} {2} {3}'.format(w, find_type(w), line_num)#, stem(w))
+    if not (split_line == [] or split_line[0] == '#'):
+        for w in split_line:
+    	   print '{0} {1} {2}'.format(w, find_type(w), line_num)#, stem(w))
     	line_num += 1
 print 'ENDFILE\n'
 
