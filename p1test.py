@@ -47,6 +47,13 @@ def find_type(w):
     elif string_obj.match(w):
         return 'STRING'
 
+last_non_terminal = None
+
+grammar_non_terminals = ['S', 'NP', 'VP', 'Nominal', 'PP']
+lexicon_non_terminals = ['Aux', 'Det', 'Pronoun', 'Proper-Noun',  'Noun', 'Verb', 'Prep']
+grammar = {}
+lexicon = {}
+
 for line in sys.stdin:
     line = line.strip()
     split_line = tokenize(line)
@@ -62,6 +69,16 @@ for line in sys.stdin:
                 else:
                     print '{0} {1} {2}'.format(w, find_type(w), line_num)
         else:
+            first_word = split_line[0]
+            if first_word in lexicon_non_terminals:
+                if first_word not in lexicon:
+                    lexicon[first_word] = []
+                for w in split_line[2:]:
+                    if w != '|':
+                        lexicon[first_word].append(w)
+
+            elif first_word in grammar_non_terminals:
+
             for w in split_line:
                 print '{0} {1} {2}'.format(w, find_type(w), line_num)
         line_num += 1
