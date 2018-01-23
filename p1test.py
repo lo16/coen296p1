@@ -57,7 +57,9 @@ lexicon = {}
 for line in sys.stdin:
     line = line.strip()
     split_line = tokenize(line)
+    #check if line should be ignored
     if not (split_line == [] or split_line[0] == '#'):
+        #handle line with input sentence
         if split_line[0] == 'W':
             for w in split_line[:2]:
                 print '{0} {1} {2}'.format(w, find_type(w), line_num)
@@ -68,19 +70,55 @@ for line in sys.stdin:
                     print '{0} {1} {2} {3}'.format(w, find_type(w), line_num, stemmer.stem(w))
                 else:
                     print '{0} {1} {2}'.format(w, find_type(w), line_num)
+
+        #check first word of the line to determine how to handle it
         else:
+            #print all tokens first
+            for w in split_line:
+                print '{0} {1} {2}'.format(w, find_type(w), line_num)
+
             first_word = split_line[0]
+            start = 1
+
+            #handle '|' and ';' as first word
+            if first_word in "|;":
+                first_word = last_non_terminal
+                start = 0
+
+
             if first_word in lexicon_non_terminals:
                 if first_word not in lexicon:
                     lexicon[first_word] = []
-                for w in split_line[2:]:
-                    if w != '|':
+
+                for w in split_line[start:]:
+                    if w not in ":|;":
+                        #this is working under the assumption that all terminals are single words
                         lexicon[first_word].append(w)
 
             elif first_word in grammar_non_terminals:
+                if first_word not in grammar:
+                    grammar[first_word] = []
 
-            for w in split_line:
-                print '{0} {1} {2}'.format(w, find_type(w), line_num)
+
+                for w in split_line[start:]:
+                    if w == ":":
+                        #first rule
+                        rule = []
+                    elif w == "|":
+                        #new rule
+                        grammar[first_word].append(rule)
+                        rule = []
+                    elif w == ";":
+                        #no more rules
+                        grammar[first_word].append(rule)
+                    else:
+                        rule.append(w)
+
+            else:
+                #invalid line, throw error
+
+            #if line was processed, keep track of its operation for the next line
+            last_non_terminal = first_word
         line_num += 1
 print 'ENDFILE\n'
 
