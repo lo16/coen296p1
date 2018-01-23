@@ -48,6 +48,7 @@ def find_type(w):
         return 'STRING'
 
 last_non_terminal = None
+continuation = False
 
 grammar_non_terminals = ['S', 'NP', 'VP', 'Nominal', 'PP']
 lexicon_non_terminals = ['Aux', 'Det', 'Pronoun', 'Proper-Noun',  'Noun', 'Verb', 'Prep']
@@ -81,10 +82,19 @@ for line in sys.stdin:
             start = 1
 
             #handle '|' and ';' as first word
+            #do a continuation check first
             if first_word in "|;":
+                if not continuation:
+                    #throw error
+                    pass
                 first_word = last_non_terminal
                 start = 0
-
+            #do continuation check for non-terminal first word
+            else:
+                if continuation and (first_word != last_non_terminal):
+                    #throw error
+                    print ('improperly formatted input')
+                    sys.exit(1)
 
             if first_word in lexicon_non_terminals:
                 if first_word not in lexicon:
@@ -98,7 +108,6 @@ for line in sys.stdin:
             elif first_word in grammar_non_terminals:
                 if first_word not in grammar:
                     grammar[first_word] = []
-
 
                 for w in split_line[start:]:
                     if w == ":":
@@ -116,12 +125,17 @@ for line in sys.stdin:
 
             else:
                 #invalid line, throw error
-
+                print ('improperly formatted input')
+                sys.exit(1)
+            
             #if line was processed, keep track of its operation for the next line
             last_non_terminal = first_word
+            continuation = split_line[-1] != ";"
+            
         line_num += 1
 print 'ENDFILE\n'
 
-
+print grammar
+print lexicon
 
 
