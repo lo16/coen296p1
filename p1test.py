@@ -46,6 +46,9 @@ def find_type(w):
         return 'OP'
     elif string_obj.match(w):
         return 'STRING'
+    else:
+        print ('invalid symbol found')
+        sys.exit(1)
 
 last_non_terminal = None
 continuation = False
@@ -93,7 +96,7 @@ for line in sys.stdin:
             else:
                 if continuation and (first_word != last_non_terminal):
                     #throw error
-                    print ('improperly formatted input')
+                    print ('improperly formatted input, continuation error')
                     sys.exit(1)
 
             if first_word in lexicon_non_terminals:
@@ -102,14 +105,20 @@ for line in sys.stdin:
 
                 for w in split_line[start:]:
                     if w not in ":|;":
-                        #this is working under the assumption that all terminals are single words
-                        lexicon[first_word].append(w)
+                        if find_type(w) != 'OP':
+                            #this is working under the assumption that all terminals are single words
+                            lexicon[first_word].append(w)
+                        else:
+                            #invalid OP found:
+                            print ('improperly formatted input, OP error')
+                            sys.exit(1)
 
             elif first_word in grammar_non_terminals:
                 if first_word not in grammar:
                     grammar[first_word] = []
 
                 for w in split_line[start:]:
+                    #print ('processing ' + w)
                     if w == ":":
                         #first rule
                         rule = []
@@ -120,18 +129,22 @@ for line in sys.stdin:
                     elif w == ";":
                         #no more rules
                         grammar[first_word].append(rule)
-                    else:
+                    elif find_type(w) != 'OP':
                         rule.append(w)
+                    else:
+                        print ('improperly formatted input, OP error2')
+                        print (w)
+                        sys.exit(1)
 
             else:
                 #invalid line, throw error
-                print ('improperly formatted input')
+                print ('improperly formatted input, non-terminal error')
                 sys.exit(1)
             
             #if line was processed, keep track of its operation for the next line
             last_non_terminal = first_word
             continuation = split_line[-1] != ";"
-            
+
         line_num += 1
 print 'ENDFILE\n'
 
