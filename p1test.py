@@ -162,10 +162,6 @@ for line in sys.stdin:
         line_num += 1
 print ('ENDFILE\n')
 
-#print grammar
-#print lexicon
-#print sentence
-
 #################################################################################
 
 class chartState:
@@ -211,67 +207,25 @@ def predictor(state, temp_chart):
         new_state = chartState(B, rule, j, j)
         if enqueue(new_state, chart[j], 'Predictor'):
             enqueue(new_state, temp_chart, 'Predictor')
-    # if j == 2:
-    #     print ('chart[' + str(j) + ']', chart[j])
-    #     print ('temp_chart', temp_chart)
 
 def scanner(state):
-    #print ('in scanner')
     j = state.dot
-    #print 'in scanner, j = ' + str(j)
     B = state.right[j - state.begin]
-    #print (B, find_part_of_speech(sentence[j]), sentence[j])
-    # if state.right[0] == 'Det':
-    #     print (B)
-    #     print (sentence[j - state.begin])
+
     if B in find_part_of_speech(sentence[j]):
         new_state = chartState(B, [sentence[j]], j, j + 1)
         enqueue(new_state, chart[j + 1], 'Scanner')
-        # if state.right[0] == 'Det':
-        #     print ('start')
-        #     print (new_state)
-        #     print ('end')
-        #print (state, new_state, j+1)
-        #print chart[j+1]
 
-
-#REWRITE?s
 def completer(state, temp_chart):
     j = state.begin
     k = state.dot
     B = state.left
-    # if state.right[0] == 'flight':
-    #     print (B, j, k)
-        #print (chart[j])
-    #print ('in completer')
-    #print (state.incomplete())
-    #print (state)
-    #print (B, chart[j])
 
     for temp_state in chart[j]:
-        #print ('in')
-        # print (B, temp_state.right, j, k)
-        # print (temp_state, state)
         if (j == temp_state.dot) and ((temp_state.dot - temp_state.begin) < len(temp_state.right)) and (B == temp_state.right[j - temp_state.begin]) and (temp_state.left != 'y'):
-        #if ((j - temp_state.begin) != len(temp_state.right)) and (B == temp_state.right[j - temp_state.begin]):
             new_state = chartState(temp_state.left, temp_state.right, temp_state.begin, k)
-            #print new_state
-            # print ('adding complete state')
             if enqueue(new_state, chart[k], 'Completer'):
                 enqueue(new_state, temp_chart, 'Completer')
-            # if state.right[0] == 'flight':
-            #     #print (new_state)
-            #     print ('----------------')
-            #     print (state, temp_chart)
-            #     print ('----------------')
-            # if B == 'Det':
-            #     print ('hey')
-            #     print (new_state)
-            #     print (temp_chart)
-            #     print (chart[k])
-            #     print ('done')
-            # print (temp_chart)
-
 
 def enqueue(state, entry, caller):
     if state not in entry:
@@ -286,32 +240,14 @@ enqueue(startState, chart[0], 'Dummy start state')
 for i in range(0, len(sentence)):
     print ('processing chart ' + str(i) + 'a')
     temp_chart = chart[i][:]
-    #print (temp_chart)
     while temp_chart:
-        # print ('----------processing state-------------')
-        # print (temp_chart)
-        # print ('----------temp_chart-------------------')
         state = temp_chart.pop(0)
-        # if i == 3:
-        #     print (state, temp_chart)
-        #print (state)
-        # print (state, temp_chart)
-        #print (state.incomplete())
 
         if state.incomplete() and not state.next_cat_is_part_of_speech():
-            # if state.right[0] == 'flight':
-            #     print ('test1')
             predictor(state, temp_chart)
         elif state.incomplete() and state.next_cat_is_part_of_speech():
-            # if state.right[0] == 'flight':
-            #     print ('test2')
             scanner(state)
         else:
-            # if state.right[0] == 'flight':
-            #     print ('test3')
-               # print (chart)
             completer(state, temp_chart)
-    #print (chart)
-#print ('done')
+
 print (chart)
-#print (len(sentence), sentence)
