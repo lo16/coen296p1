@@ -63,10 +63,12 @@ lexicon = {}
 sentence = None
 
 def find_part_of_speech(w):
-    for key in lexicon:
-        if w in lexicon[key]:
-            return key
-    return None
+    parts = []
+    word_stem = stemmer.stem(w)
+    for key in lexicon.keys():
+        if word_stem in lexicon[key]:
+            parts.append(key)
+    return parts
 
 for line in sys.stdin:
     line = line.strip()
@@ -76,14 +78,14 @@ for line in sys.stdin:
         #handle line with input sentence
         if split_line[0] == 'W':
             for w in split_line[:2]:
-                print '{0} {1} {2}'.format(w, find_type(w), line_num)
+                print ('{0} {1} {2}'.format(w, find_type(w), line_num))
 
             #input sentence is here
             for w in split_line[2:]:
                 if find_type(w) == 'STRING':
-                    print '{0} {1} {2} {3}'.format(w, find_type(w), line_num, stemmer.stem(w))
+                    print ('{0} {1} {2} {3}'.format(w, find_type(w), line_num, stemmer.stem(w)))
                 else:
-                    print '{0} {1} {2}'.format(w, find_type(w), line_num)
+                    print ('{0} {1} {2}'.format(w, find_type(w), line_num))
 
             sentence = remove_punctuation(split_line[2:])
 
@@ -91,7 +93,7 @@ for line in sys.stdin:
         else:
             #print all tokens first
             for w in split_line:
-                print '{0} {1} {2}'.format(w, find_type(w), line_num)
+                print ('{0} {1} {2}'.format(w, find_type(w), line_num))
 
             first_word = split_line[0]
             start = 1
@@ -158,11 +160,13 @@ for line in sys.stdin:
             continuation = split_line[-1] != ";"
 
         line_num += 1
-print 'ENDFILE\n'
+print ('ENDFILE\n')
 
-print grammar
-print lexicon
-print sentence
+#print grammar
+#print lexicon
+#print sentence
+
+#################################################################################
 
 class chartState:
     parts_of_speech = ['Aux', 'Det', 'Pronoun', 'Proper-Noun',  'Noun', 'Verb', 'Prep']
@@ -176,48 +180,64 @@ class chartState:
         if self.dot < len(self.right) and self.dot >= 0:
             return self.right[self.dot] in chartState.parts_of_speech
         else:
-            print 'parsing error, reached end of rule'
+            print ('parsing error, reached end of rule')
             sys.exit(1)
 
     def incomplete(self):
         return self.dot < len(self.right) 
 
     def __repr__(self):
-        return "{0} -> {1} \t [{2},{3}]".format(self.left, self.right, self.begin, self.dot)
+        new_right = self.right[:]
+        new_right.insert(self.dot - self.begin, '^')
+        new_right = ' '.join(new_right)
+        return "{0} -> {1} \t [{2},{3}]\n".format(self.left, new_right, self.begin, self.dot)
+
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__
 
 
 
+chart = [[] for i in range(len(sentence) + 1)]
 
-chart = [[] for i in xrange(len(sentence) + 1)]
-
-startState = chartState('y', 'S', 0, 0)
+startState = chartState('y', ['S'], 0, 0)
 chart[0].append(startState)
 
 def predictor(state, temp_chart):
+    print ('in predictor')
     B = state.right[state.dot]
     j = state.dot
     rules = grammar[B]
-    print state
+    #print state
     for rule in rules:
         enqueue(chartState(B, rule, j, j), chart[j])
         enqueue(chartState(B, rule, j, j), temp_chart)
 
 def scanner(state):
+    print ('in scanner')
     j = state.dot
-    print 'in scanner, j = ' + str(j)
+    #print 'in scanner, j = ' + str(j)
     B = state.right[j]
-    if B == find_part_of_speech(sentence[j]):
-        enqueue(chartState(B, sentence[j], j, j + 1), chart[j + 1])
+    #print (B, find_part_of_speech(sentence[j]), sentence[j])
+    if B in find_part_of_speech(sentence[j]):
+        enqueue(chartState(B, [sentence[j]], j, j + 1), chart[j + 1])
+        #print chart[j+1]
 
+
+#REWRITE?s
 def completer(state, temp_chart):
     j = state.begin
     k = state.dot
     B = state.left
-
+    print ('in completer')
+    #print (B, chart[j])
     for temp_state in chart[j]:
-        if B == temp_state.right[j]:
-            enqueue(chartState(temp_state.left, temp_state.right, temp_state.begin, k), chart[k])
-            enqueue(chartState(temp_state.left, temp_state.right, temp_state.begin, k), temp_chart)
+        # print (B, temp_state.right, j, k)
+        # print (temp_state)
+        if j != len(temp_state.right) and B == temp_state.right[j - temp_state.begin]:
+            new_state = chartState(temp_state.left, temp_state.right, temp_state.begin, k)
+            #print new_state
+            enqueue(new_state, chart[k])
+            #enqueue(new_state, temp_chart)
 
 def enqueue(state, entry):
     if state not in entry:
@@ -225,18 +245,21 @@ def enqueue(state, entry):
 
 
 
-i = 0
-#for i in xrange(0, len(sentence)):
-print 'processing chart ' + str(i)
-temp_chart = chart[i][:]
-while temp_chart:
-    state = temp_chart.pop(0)
-    if state.incomplete() and not state.next_cat_is_part_of_speech():
-        predictor(state, temp_chart)
-    elif state.incomplete() and state.next_cat_is_part_of_speech():
-        scanner(state)
-    else:
-        completer(state, temp_chart)
-
-print chart
-
+#i = 0
+for i in range(0, len(sentence)):
+    print ('processing chart ' + str(i) + 'a')
+    temp_chart = chart[i][:]
+    while temp_chart:
+        print ('----------processing state-------------')
+        state = temp_chart.pop(0)
+        print (state)
+        #print (state.incomplete())
+        if state.incomplete() and not state.next_cat_is_part_of_speech():
+            predictor(state, temp_chart)
+        elif state.incomplete() and state.next_cat_is_part_of_speech():
+            scanner(state)
+        else:
+            completer(state, temp_chart)
+    #print (chart)
+#print ('done')
+print (chart)
