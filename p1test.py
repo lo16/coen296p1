@@ -50,6 +50,9 @@ def find_type(w):
         print ('invalid symbol found')
         sys.exit(1)
 
+def remove_punctuation(sentence):
+    return [w for w in sentence if not op_obj.match(w)]
+
 last_non_terminal = None
 continuation = False
 
@@ -57,6 +60,13 @@ grammar_non_terminals = ['S', 'NP', 'VP', 'Nominal', 'PP']
 lexicon_non_terminals = ['Aux', 'Det', 'Pronoun', 'Proper-Noun',  'Noun', 'Verb', 'Prep']
 grammar = {}
 lexicon = {}
+sentence = None
+
+def find_part_of_speech(w):
+    for key in lexicon:
+        if w in lexicon[key]:
+            return key
+    return None
 
 for line in sys.stdin:
     line = line.strip()
@@ -74,6 +84,8 @@ for line in sys.stdin:
                     print '{0} {1} {2} {3}'.format(w, find_type(w), line_num, stemmer.stem(w))
                 else:
                     print '{0} {1} {2}'.format(w, find_type(w), line_num)
+
+            sentence = remove_punctuation(split_line[2:])
 
         #check first word of the line to determine how to handle it
         else:
@@ -150,5 +162,81 @@ print 'ENDFILE\n'
 
 print grammar
 print lexicon
+print sentence
 
+class chartState:
+    parts_of_speech = ['Aux', 'Det', 'Pronoun', 'Proper-Noun',  'Noun', 'Verb', 'Prep']
+    def __init__(self, left, right, begin, dot):
+        self.left = left
+        self.right = right
+        self.begin = begin
+        self.dot = dot
+
+    def next_cat_is_part_of_speech(self):
+        if self.dot < len(self.right) and self.dot >= 0:
+            return self.right[self.dot] in chartState.parts_of_speech
+        else:
+            print 'parsing error, reached end of rule'
+            sys.exit(1)
+
+    def incomplete(self):
+        return self.dot < len(self.right) 
+
+    def __repr__(self):
+        return "{0} -> {1} \t [{2},{3}]".format(self.left, self.right, self.begin, self.dot)
+
+
+
+
+chart = [[] for i in xrange(len(sentence) + 1)]
+
+startState = chartState('y', 'S', 0, 0)
+chart[0].append(startState)
+
+def predictor(state, temp_chart):
+    B = state.right[state.dot]
+    j = state.dot
+    rules = grammar[B]
+    print state
+    for rule in rules:
+        enqueue(chartState(B, rule, j, j), chart[j])
+        enqueue(chartState(B, rule, j, j), temp_chart)
+
+def scanner(state):
+    j = state.dot
+    print 'in scanner, j = ' + str(j)
+    B = state.right[j]
+    if B == find_part_of_speech(sentence[j]):
+        enqueue(chartState(B, sentence[j], j, j + 1), chart[j + 1])
+
+def completer(state, temp_chart):
+    j = state.begin
+    k = state.dot
+    B = state.left
+
+    for temp_state in chart[j]:
+        if B == temp_state.right[j]:
+            enqueue(chartState(temp_state.left, temp_state.right, temp_state.begin, k), chart[k])
+            enqueue(chartState(temp_state.left, temp_state.right, temp_state.begin, k), temp_chart)
+
+def enqueue(state, entry):
+    if state not in entry:
+        entry.append(state)
+
+
+
+i = 0
+#for i in xrange(0, len(sentence)):
+print 'processing chart ' + str(i)
+temp_chart = chart[i][:]
+while temp_chart:
+    state = temp_chart.pop(0)
+    if state.incomplete() and not state.next_cat_is_part_of_speech():
+        predictor(state, temp_chart)
+    elif state.incomplete() and state.next_cat_is_part_of_speech():
+        scanner(state)
+    else:
+        completer(state, temp_chart)
+
+print chart
 
