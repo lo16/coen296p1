@@ -197,6 +197,7 @@ class chartState:
 
 
 chart = [[] for i in range(len(sentence) + 1)]
+procedures = [[] for i in range(len(sentence) + 1)]
 
 def predictor(state, temp_chart):
     #print ('in predictor')
@@ -206,8 +207,8 @@ def predictor(state, temp_chart):
     #print state
     for rule in rules:
         new_state = chartState(B, rule, j, j, 0)
-        if enqueue(new_state, chart[j], 'Predictor'):
-            enqueue(new_state, temp_chart, 'Predictor')
+        if enqueue(new_state, chart[j], procedures[j], 'Predictor'):
+            enqueue_without_caller(new_state, temp_chart)
 
 def scanner(state):
     j = state.dot
@@ -218,7 +219,7 @@ def scanner(state):
         return
     elif B in find_part_of_speech(sentence[j]):
         new_state = chartState(B, [sentence[j]], j, j + 1, 1)
-        enqueue(new_state, chart[j + 1], 'Scanner')
+        enqueue(new_state, chart[j + 1], procedures[j + 1], 'Scanner')
 
 def completer(state, temp_chart):
     j = state.begin
@@ -228,21 +229,28 @@ def completer(state, temp_chart):
     for temp_state in chart[j]:
         if (j == temp_state.dot) and ((temp_state.dot - temp_state.begin) < len(temp_state.right)) and (B == temp_state.right[j - temp_state.begin]) and (temp_state.left != 'y'):
             new_state = chartState(temp_state.left, temp_state.right, temp_state.begin, k, temp_state.dot_position + 1)
-            if enqueue(new_state, chart[k], 'Completer'):
-                enqueue(new_state, temp_chart, 'Completer')
+            if enqueue(new_state, chart[k], procedures[k], 'Completer'):
+                enqueue_without_caller(new_state, temp_chart)
 
-def enqueue(state, entry, caller):
+def enqueue(state, entry, procedures, procedure):
+    if state not in entry:
+        entry.append(state)
+        procedures.append(procedure)
+        return True
+    return False
+
+def enqueue_without_caller(state, entry):
     if state not in entry:
         entry.append(state)
         return True
     return False
 
 startState = chartState('y', ['S'], 0, 0, 0)
-enqueue(startState, chart[0], 'Dummy start state')
+enqueue(startState, chart[0], procedures[0], 'Dummy start state')
 
 #i = 0
 for i in range(0, len(sentence) + 1):
-    print ('processing chart ' + str(i) + 'a')
+    #print ('processing chart ' + str(i) + 'a')
     temp_chart = chart[i][:]
     while temp_chart:
         state = temp_chart.pop(0)
@@ -255,3 +263,4 @@ for i in range(0, len(sentence) + 1):
             completer(state, temp_chart)
 
 print (chart)
+print (procedures)
