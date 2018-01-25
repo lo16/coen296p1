@@ -2,8 +2,6 @@ import sys
 import re
 from nltk.stem.porter import *
 
-line_num = 1
-
 #patterns used for tokenization
 letternumber = r'[A-Za-z0-9]'
 notletter = r'[^A-Za-z0-9]'
@@ -69,6 +67,8 @@ def find_part_of_speech(w):
         if word_stem in lexicon[key]:
             parts.append(key)
     return parts
+
+line_num = 1
 
 for line in sys.stdin:
     line = line.strip()
@@ -166,11 +166,12 @@ print ('ENDFILE\n')
 
 class chartState:
     parts_of_speech = ['Aux', 'Det', 'Pronoun', 'Proper-Noun',  'Noun', 'Verb', 'Prep']
-    def __init__(self, left, right, begin, dot):
+    def __init__(self, left, right, begin, dot, dot_position):
         self.left = left
         self.right = right
         self.begin = begin
         self.dot = dot
+        self.dot_position = dot_position
 
     def next_cat_is_part_of_speech(self):
         if self.dot - self.begin < len(self.right) and self.dot - self.begin >= 0:
@@ -186,7 +187,7 @@ class chartState:
 
     def __repr__(self):
         new_right = self.right[:]
-        new_right.insert(self.dot - self.begin, '^')
+        new_right.insert(self.dot_position, '^')
         new_right = ' '.join(new_right)
         return "{0} -> {1} \t [{2},{3}]\n".format(self.left, new_right, self.begin, self.dot)
 
@@ -204,7 +205,7 @@ def predictor(state, temp_chart):
     rules = grammar[B]
     #print state
     for rule in rules:
-        new_state = chartState(B, rule, j, j)
+        new_state = chartState(B, rule, j, j, 0)
         if enqueue(new_state, chart[j], 'Predictor'):
             enqueue(new_state, temp_chart, 'Predictor')
 
@@ -213,7 +214,7 @@ def scanner(state):
     B = state.right[j - state.begin]
 
     if B in find_part_of_speech(sentence[j]):
-        new_state = chartState(B, [sentence[j]], j, j + 1)
+        new_state = chartState(B, [sentence[j]], j, j + 1, 1)
         enqueue(new_state, chart[j + 1], 'Scanner')
 
 def completer(state, temp_chart):
@@ -223,7 +224,7 @@ def completer(state, temp_chart):
 
     for temp_state in chart[j]:
         if (j == temp_state.dot) and ((temp_state.dot - temp_state.begin) < len(temp_state.right)) and (B == temp_state.right[j - temp_state.begin]) and (temp_state.left != 'y'):
-            new_state = chartState(temp_state.left, temp_state.right, temp_state.begin, k)
+            new_state = chartState(temp_state.left, temp_state.right, temp_state.begin, k, temp_state.dot_position + 1)
             if enqueue(new_state, chart[k], 'Completer'):
                 enqueue(new_state, temp_chart, 'Completer')
 
@@ -233,12 +234,12 @@ def enqueue(state, entry, caller):
         return True
     return False
 
-startState = chartState('y', ['S'], 0, 0)
+startState = chartState('y', ['S'], 0, 0, 0)
 enqueue(startState, chart[0], 'Dummy start state')
 
 #i = 0
 for i in range(0, len(sentence)):
-    print ('processing chart ' + str(i) + 'a')
+    #print ('processing chart ' + str(i) + 'a')
     temp_chart = chart[i][:]
     while temp_chart:
         state = temp_chart.pop(0)
