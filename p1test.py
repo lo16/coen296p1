@@ -189,7 +189,7 @@ class chartState:
         new_right = self.right[:]
         new_right.insert(self.dot_position, '^')
         new_right = ' '.join(new_right)
-        return "{0} -> {1} \t [{2},{3}]\n".format(self.left, new_right, self.begin, self.dot)
+        return "{0} -> {1} [{2},{3}]".format(self.left, new_right, self.begin, self.dot)
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
@@ -262,5 +262,25 @@ for i in range(0, len(sentence) + 1):
         else:
             completer(state, temp_chart)
 
-print (chart)
-print (procedures)
+def output(chart, procedures):
+    state_counter = 0
+    for i in range(len(chart)):
+        print ('Chart[{0}]'.format(i), end = ' ')
+        for j in range(len(chart[i])):
+            state_string = chart[i][j].__repr__()
+            state_string_split = state_string.index('[')
+            
+            state_string_1 = state_string[:state_string_split]
+            state_string_2 = state_string[state_string_split:]
+            if state_counter < 10:
+                state_string_2 = ' ' + state_string_2
+
+            print_statement = 'S{0} {1:35} {2} {3}'.format(state_counter, state_string_1, state_string_2, procedures[i][j])
+
+            if j != 0:
+                print_statement = '\t\t ' + print_statement
+            print (print_statement)
+            state_counter += 1
+        print()
+
+output(chart, procedures)
