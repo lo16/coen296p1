@@ -62,9 +62,9 @@ sentence = None
 
 def find_part_of_speech(w):
     parts = []
-    word_stem = stemmer.stem(w)
+    #word_stem = stemmer.stem(w)
     for key in lexicon.keys():
-        if word_stem in lexicon[key]:
+        if w in lexicon[key]:
             parts.append(key)
     return parts
 
@@ -87,7 +87,7 @@ for line in sys.stdin:
                 else:
                     print ('{0} {1} {2}'.format(w, find_type(w), line_num))
 
-            sentence = split_line[2:]#remove_punctuation(split_line[2:])
+            sentence = list(map(stemmer.stem, remove_punctuation(split_line[2:])))#remove_punctuation(split_line[2:])
 
         #check first word of the line to determine how to handle it
         else:
@@ -213,7 +213,10 @@ def scanner(state):
     j = state.dot
     B = state.right[j - state.begin]
 
-    if B in find_part_of_speech(sentence[j]):
+    #end of sentence check
+    if j == len(sentence):
+        return
+    elif B in find_part_of_speech(sentence[j]):
         new_state = chartState(B, [sentence[j]], j, j + 1, 1)
         enqueue(new_state, chart[j + 1], 'Scanner')
 
@@ -238,8 +241,8 @@ startState = chartState('y', ['S'], 0, 0, 0)
 enqueue(startState, chart[0], 'Dummy start state')
 
 #i = 0
-for i in range(0, len(sentence)):
-    #print ('processing chart ' + str(i) + 'a')
+for i in range(0, len(sentence) + 1):
+    print ('processing chart ' + str(i) + 'a')
     temp_chart = chart[i][:]
     while temp_chart:
         state = temp_chart.pop(0)
