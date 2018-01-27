@@ -1,3 +1,5 @@
+#NOTE: this script must be run in python3
+
 import sys
 import re
 from nltk.stem.porter import *
@@ -329,7 +331,7 @@ class parser:
                 print_statement = 'S{0} {1:35} {2} {3}'.format(state_counter, state_string_1, state_string_2, self.procedures[i][j])
 
                 if j != 0:
-                    print_statement = '\t\t ' + print_statement
+                    print_statement = '\t ' + print_statement
                 print (print_statement)
                 state_counter += 1
             print()
